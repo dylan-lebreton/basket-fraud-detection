@@ -58,13 +58,11 @@ def clean_item(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("item")
         .str.to_uppercase()
         .str.replace_all(NORMAL_CHARS_REGEX, "")
-        .alias("item_clean")
     ).with_columns(
-        pl.col("item_clean").replace_strict(
-            ITEMS_OUTLIERS, default=pl.col("item_clean"))
+        pl.col("item").replace_strict(ITEMS_OUTLIERS, default=pl.col("item"))
     ).with_columns(
-        pl.when(pl.col("item_clean").str.contains(DIGIT_PREFIX_REGEX))
+        pl.when(pl.col("item").str.contains(DIGIT_PREFIX_REGEX))
         .then(pl.lit("OTHER"))
-        .otherwise(pl.col("item_clean"))
-        .alias("item_clean")
+        .otherwise(pl.col("item"))
+        .alias('item')
     )
