@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+
+# Data
+data/
+*.csv
+
+# IDE
+.vscode/
+.idea/
+.DS_Store
