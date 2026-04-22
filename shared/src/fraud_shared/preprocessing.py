@@ -66,3 +66,12 @@ def clean_item(df: pl.DataFrame) -> pl.DataFrame:
         .otherwise(pl.col("item"))
         .alias('item')
     )
+
+
+def apply_filling(df: pl.DataFrame, column: str, filling: dict[str, str]) -> pl.DataFrame:
+    """Fill missing values in column using a goods_code lookup."""
+    return df.with_columns(
+        pl.col(column)
+        .fill_null(pl.col("goods_code").replace_strict(filling, default=None))
+        .fill_null("OTHER")
+    )
