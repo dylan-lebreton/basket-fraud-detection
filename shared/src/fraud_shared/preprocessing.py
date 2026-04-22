@@ -75,3 +75,28 @@ def apply_filling(df: pl.DataFrame, column: str, filling: dict[str, str]) -> pl.
         .fill_null(pl.col("goods_code").replace_strict(filling, default=None))
         .fill_null("OTHER")
     )
+
+
+def aggregate_basket(df: pl.DataFrame) -> pl.DataFrame:
+    """Aggregate items into one row per basket with computed features."""
+    aggregations = [
+        pl.col("n_items").first().alias("n_items"),
+        pl.col("n_prods").sum().alias("n_prods"),
+        pl.col("cash_price").sum().alias("price"),
+        pl.col("cash_price").max().alias("max_price"),
+        pl.col("cash_price").mean().alias("mean_price"),
+        pl.col("cash_price").std().fill_null(0.0).alias("std_price"),
+        pl.col("cash_price").max().is_between(
+            1000, 2000).alias("max_price_in_fraud_zone"),
+        pl.col("item").eq("COMPUTERS").any().alias("has_computer"),
+        pl.col("item").eq("FULFILMENTCHARGE").any().alias("has_fulfilment"),
+        pl.col("item").eq("SERVICE").any().alias("has_service"),
+        pl.col("make").eq("APPLE").any().alias("has_apple"),
+        pl.col("model").str.contains("MACBOOK").any().alias("has_macbook"),
+        pl.col("model").str.contains("IPAD").any().alias("has_ipad"),
+    ]
+
+    if "target" in df.columns:
+        aggregations.append(pl.col("target").first().alias("target"))
+
+    return df.group_by(ID_COLUMN).agg(aggregations)
