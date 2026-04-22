@@ -1,0 +1,9 @@
+jupyter
+polars
+pyarrow
+pandas
+plotly
+seaborn
+scikit-learn
+tabulate
+xgboost
