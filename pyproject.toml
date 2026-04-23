@@ -1,5 +1,5 @@
 [project]
-name = "basket-fraud-detection"
+name = "fraud-detection"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
@@ -8,11 +8,8 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "nbstripout>=0.9.1",
+    "polars>=1.40.1",
 ]
-
-[project.scripts]
-basket-fraud-detection = "basket_fraud_detection:main"
 
 [build-system]
 requires = ["uv_build>=0.11.7,<0.12.0"]

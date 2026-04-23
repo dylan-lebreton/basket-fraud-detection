@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from fraud_shared.schema import ID_COLUMN, ITEM_COLUMNS, MAX_ITEMS, N_ITEMS_COLUMN
+from fraud_detection.schema import ID_COLUMN, ITEM_COLUMNS, MAX_ITEMS, N_ITEMS_COLUMN
 
 EXPECTED_COLUMNS = (
     {ID_COLUMN, N_ITEMS_COLUMN}

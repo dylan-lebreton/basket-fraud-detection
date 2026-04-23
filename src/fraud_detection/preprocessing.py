@@ -2,7 +2,7 @@
 
 import polars as pl
 
-from fraud_shared.schema import (
+from fraud_detection.schema import (
     COLUMN_RENAMES,
     DIGIT_PREFIX_REGEX,
     EXPECTED_DTYPES,
