@@ -7,5 +7,4 @@ __pycache__/
 notebooks/
 data/
 k8s/
-*.md
 .DS_Store
