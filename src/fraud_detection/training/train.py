@@ -57,35 +57,30 @@ def evaluate_train(model, x, y) -> float:
 
 
 def promote_if_better(new_cv_mean: float) -> None:
-    """Promote new version to Production if its CV score beats the current one."""
+    """Promote new version to @champion alias if its CV score beats the current one."""
     client = MlflowClient()
     model_name = settings.mlflow_model_name
+    alias = "champion"
 
     all_versions = client.search_model_versions(f"name='{model_name}'")
     new_version = max(all_versions, key=lambda v: int(v.version))
 
-    prod_versions = client.get_latest_versions(model_name, stages=["Production"])
     prod_score = 0.0
-    if prod_versions:
-        prod_run = client.get_run(prod_versions[0].run_id)
-        prod_score = prod_run.data.metrics.get("cv_mean", 0.0)
+    try:
+        champion = client.get_model_version_by_alias(model_name, alias)
+        if champion.run_id:
+            prod_run = client.get_run(champion.run_id)
+            prod_score = prod_run.data.metrics.get("cv_mean", 0.0)
+    except Exception:
+        pass
 
     if new_cv_mean > prod_score:
-        client.transition_model_version_stage(
-            name=model_name,
-            version=new_version.version,
-            stage="Production",
-            archive_existing_versions=True,
-        )
-        print(f"Promoted v{new_version.version} to Production "
+        client.set_registered_model_alias(
+            model_name, alias, new_version.version)
+        print(f"Promoted v{new_version.version} to @{alias} "
               f"(new={new_cv_mean:.4f} > prod={prod_score:.4f})")
     else:
-        client.transition_model_version_stage(
-            name=model_name,
-            version=new_version.version,
-            stage="Staging",
-        )
-        print(f"Kept v{new_version.version} in Staging "
+        print(f"Kept v{new_version.version} "
               f"(new={new_cv_mean:.4f} <= prod={prod_score:.4f})")
 
 
