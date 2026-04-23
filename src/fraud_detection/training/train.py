@@ -6,6 +6,7 @@ from pathlib import Path
 
 import mlflow
 from mlflow import xgboost as mlflow_xgboost
+from mlflow.tracking import MlflowClient
 import polars as pl
 import pandas as pd
 from sklearn.metrics import average_precision_score
@@ -55,6 +56,39 @@ def evaluate_train(model, x, y) -> float:
     return float(average_precision_score(y, probas))
 
 
+def promote_if_better(new_cv_mean: float) -> None:
+    """Promote new version to Production if its CV score beats the current one."""
+    client = MlflowClient()
+    model_name = settings.mlflow_model_name
+
+    all_versions = client.search_model_versions(f"name='{model_name}'")
+    new_version = max(all_versions, key=lambda v: int(v.version))
+
+    prod_versions = client.get_latest_versions(model_name, stages=["Production"])
+    prod_score = 0.0
+    if prod_versions:
+        prod_run = client.get_run(prod_versions[0].run_id)
+        prod_score = prod_run.data.metrics.get("cv_mean", 0.0)
+
+    if new_cv_mean > prod_score:
+        client.transition_model_version_stage(
+            name=model_name,
+            version=new_version.version,
+            stage="Production",
+            archive_existing_versions=True,
+        )
+        print(f"Promoted v{new_version.version} to Production "
+              f"(new={new_cv_mean:.4f} > prod={prod_score:.4f})")
+    else:
+        client.transition_model_version_stage(
+            name=model_name,
+            version=new_version.version,
+            stage="Staging",
+        )
+        print(f"Kept v{new_version.version} in Staging "
+              f"(new={new_cv_mean:.4f} <= prod={prod_score:.4f})")
+
+
 def main() -> None:
     mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
     mlflow.set_experiment(settings.mlflow_experiment_name)
@@ -98,6 +132,8 @@ def main() -> None:
             registered_model_name=settings.mlflow_model_name,
         )
         print(f"Model registered: {settings.mlflow_model_name}")
+
+    promote_if_better(cv_scores["cv_mean"])
 
 
 if __name__ == "__main__":
