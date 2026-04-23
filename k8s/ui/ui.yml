@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-ui
+  namespace: fraud-detection
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fraud-ui
+  template:
+    metadata:
+      labels:
+        app: fraud-ui
+    spec:
+      containers:
+        - name: fraud-ui
+          image: ghcr.io/dylan-lebreton/fraud-ui:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8501
+              name: http
+          env:
+            - name: API_URL
+              value: http://fraud-inference.fraud-detection.svc.cluster.local:8000
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraud-ui
+  namespace: fraud-detection
+spec:
+  type: NodePort
+  selector:
+    app: fraud-ui
+  ports:
+    - name: http
+      port: 8501
+      targetPort: 8501
+      nodePort: 30850
