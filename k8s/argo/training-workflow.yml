@@ -5,6 +5,7 @@ metadata:
   namespace: fraud-detection
 spec:
   entrypoint: train
+  ServiceAccountName: workflow-executor
   templates:
     - name: train
       container:
