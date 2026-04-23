@@ -1,13 +1,4 @@
 apiVersion: argoproj.io/v1alpha1
-kind: EventBus
-metadata:
-  name: default
-  namespace: fraud-detection
-spec:
-  jetstream:
-    version: latest
----
-apiVersion: argoproj.io/v1alpha1
 kind: EventSource
 metadata:
   name: minio-fraud-raw
