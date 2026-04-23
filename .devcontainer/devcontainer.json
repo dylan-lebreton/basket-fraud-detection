@@ -6,7 +6,7 @@
 	"image": "mcr.microsoft.com/devcontainers/python:3-3.11-bookworm",
 	"features": {
 		"ghcr.io/devcontainers-extra/features/uv:1": {}
-	}
+	},
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},
@@ -15,7 +15,7 @@
 	// "forwardPorts": [],
 
 	// Use 'postCreateCommand' to run commands after the container is created.
-	// "postCreateCommand": "pip3 install --user -r requirements.txt",
+	// "postCreateCommand": "",
 
 	// Configure tool-specific properties.
 	// "customizations": {},
