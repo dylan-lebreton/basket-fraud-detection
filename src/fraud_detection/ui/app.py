@@ -47,27 +47,26 @@ def show_result(proba: float) -> None:
         st.success(f"Low risk ({proba:.2%})")
 
 
-tab_guided, tab_free, tab_batch = st.tabs(["Guided", "Free", "Batch CSV"])
+tab_predict, tab_batch = st.tabs(["Predict", "Predict CSV"])
 
 
-with tab_guided:
-    st.subheader("Predict a basket (guided)")
-    st.caption("Goods code is auto-filled — only fill what matters.")
+with tab_predict:
+    st.subheader("Predict")
 
-    n_items = st.number_input("Number of items", 1, 24, 1, key="g_n")
+    n_items = st.number_input("Number of items", 1, 24, 1)
     items = []
 
     for i in range(int(n_items)):
         with st.expander(f"Item {i + 1}", expanded=(i == 0)):
             c1, c2 = st.columns(2)
-            category = c1.text_input("Category", "COMPUTERS", key=f"g_cat_{i}")
-            cash_price = c2.number_input("Cash price (€)", 0.0, 50000.0, 1500.0, key=f"g_p_{i}")
+            category = c1.text_input("Category", "COMPUTERS", key=f"cat_{i}")
+            cash_price = c2.number_input("Cash price (€)", 0.0, 50000.0, 1500.0, key=f"p_{i}")
 
             c3, c4 = st.columns(2)
-            make = c3.text_input("Make", "APPLE", key=f"g_make_{i}")
-            model = c4.text_input("Model", "MACBOOK PRO", key=f"g_mod_{i}")
+            make = c3.text_input("Make", "APPLE", key=f"make_{i}")
+            model = c4.text_input("Model", "MACBOOK PRO", key=f"mod_{i}")
 
-            n_prods = st.number_input("Nb products", 1, 40, 1, key=f"g_np_{i}")
+            n_prods = st.number_input("Nb products", 1, 40, 1, key=f"np_{i}")
 
             items.append({
                 "item": category,
@@ -78,44 +77,7 @@ with tab_guided:
                 "nbr_of_prod_purchas": int(n_prods),
             })
 
-    if st.button("Predict", type="primary", key="g_btn"):
-        try:
-            result = call_predict(1, items)
-            show_result(result["fraud_probability"])
-        except Exception as e:
-            st.error(f"Prediction failed: {e}")
-
-
-with tab_free:
-    st.subheader("Predict a basket (free)")
-
-    n_items = st.number_input("Number of items", 1, 24, 1, key="f_n")
-    items = []
-
-    for i in range(int(n_items)):
-        with st.expander(f"Item {i + 1}", expanded=(i == 0)):
-            c1, c2 = st.columns(2)
-            category = c1.text_input("Category", "COMPUTERS", key=f"f_cat_{i}")
-            cash_price = c2.number_input("Cash price (€)", 0.0, 50000.0, 1500.0, key=f"f_p_{i}")
-
-            c3, c4 = st.columns(2)
-            make = c3.text_input("Make", "APPLE", key=f"f_make_{i}")
-            model = c4.text_input("Model", "MACBOOK PRO", key=f"f_mod_{i}")
-
-            c5, c6 = st.columns(2)
-            goods_code = c5.text_input("Goods code", f"GC{i:04d}", key=f"f_gc_{i}")
-            n_prods = c6.number_input("Nb products", 1, 40, 1, key=f"f_np_{i}")
-
-            items.append({
-                "item": category,
-                "cash_price": cash_price,
-                "make": make,
-                "model": model,
-                "goods_code": goods_code,
-                "nbr_of_prod_purchas": int(n_prods),
-            })
-
-    if st.button("Predict", type="primary", key="f_btn"):
+    if st.button("Predict", type="primary"):
         try:
             result = call_predict(1, items)
             show_result(result["fraud_probability"])
@@ -124,8 +86,7 @@ with tab_free:
 
 
 with tab_batch:
-    st.subheader("Batch prediction from CSV")
-    st.caption("Upload a CSV in the challenge format — predictions run automatically.")
+    st.subheader("Predict CSV")
 
     uploaded = st.file_uploader("CSV file", type=["csv"])
 
