@@ -1,0 +1,95 @@
+apiVersion: argoproj.io/v1alpha1
+kind: EventBus
+metadata:
+  name: default
+  namespace: fraud-detection
+spec:
+  jetstream:
+    version: latest
+---
+apiVersion: argoproj.io/v1alpha1
+kind: EventSource
+metadata:
+  name: minio-fraud-raw
+  namespace: fraud-detection
+spec:
+  minio:
+    fraud-raw-data:
+      bucket:
+        name: fraud-raw-data
+      endpoint: minio.fraud-detection.svc.cluster.local:9000
+      insecure: true
+      events:
+        - s3:ObjectCreated:*
+      accessKey:
+        name: minio-credentials
+        key: root-user
+      secretKey:
+        name: minio-credentials
+        key: root-password
+      filter:
+        suffix: ".csv"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sensor-sa
+  namespace: fraud-detection
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sensor-sa
+  namespace: fraud-detection
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows", "workflowtemplates"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sensor-sa
+  namespace: fraud-detection
+subjects:
+  - kind: ServiceAccount
+    name: sensor-sa
+    namespace: fraud-detection
+roleRef:
+  kind: Role
+  name: sensor-sa
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Sensor
+metadata:
+  name: minio-fraud-training
+  namespace: fraud-detection
+spec:
+  template:
+    serviceAccountName: sensor-sa
+  dependencies:
+    - name: y-train-uploaded
+      eventSourceName: minio-fraud-raw
+      eventName: fraud-raw-data
+      filters:
+        data:
+          - path: "Key"
+            type: string
+            value:
+              - "fraud-raw-data/Y_train.csv"
+  triggers:
+    - template:
+        name: launch-training
+        argoWorkflow:
+          operation: submit
+          source:
+            resource:
+              apiVersion: argoproj.io/v1alpha1
+              kind: Workflow
+              metadata:
+                generateName: fraud-training-
+                namespace: fraud-detection
+              spec:
+                workflowTemplateRef:
+                  name: fraud-training
