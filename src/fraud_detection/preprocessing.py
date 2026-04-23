@@ -1,4 +1,8 @@
-"""Preprocessing functions shared between training and inference."""
+"""
+Preprocessing and feature engineering for fraud detection.
+"""
+
+from typing import Any
 
 import polars as pl
 
@@ -12,7 +16,6 @@ from fraud_detection.schema import (
     N_ITEMS_COLUMN,
     NORMAL_CHARS_REGEX,
 )
-
 
 def unpivot_items(df: pl.DataFrame) -> pl.DataFrame:
     """Transform wide basket format to long format (one row per item)."""
@@ -64,12 +67,12 @@ def clean_item(df: pl.DataFrame) -> pl.DataFrame:
         pl.when(pl.col("item").str.contains(DIGIT_PREFIX_REGEX))
         .then(pl.lit("OTHER"))
         .otherwise(pl.col("item"))
-        .alias('item')
+        .alias("item")
     )
 
 
 def apply_filling(df: pl.DataFrame, column: str, filling: dict[str, str]) -> pl.DataFrame:
-    """Fill missing values in column using a goods_code lookup."""
+    """Fill missing values in `column` using a goods_code lookup."""
     return df.with_columns(
         pl.col(column)
         .fill_null(pl.col("goods_code").replace_strict(filling, default=None))
@@ -86,8 +89,7 @@ def aggregate_basket(df: pl.DataFrame) -> pl.DataFrame:
         pl.col("cash_price").max().alias("max_price"),
         pl.col("cash_price").mean().alias("mean_price"),
         pl.col("cash_price").std().fill_null(0.0).alias("std_price"),
-        pl.col("cash_price").max().is_between(
-            1000, 2000).alias("max_price_in_fraud_zone"),
+        pl.col("cash_price").max().is_between(1000, 2000).alias("max_price_in_fraud_zone"),
         pl.col("item").eq("COMPUTERS").any().alias("has_computer"),
         pl.col("item").eq("FULFILMENTCHARGE").any().alias("has_fulfilment"),
         pl.col("item").eq("SERVICE").any().alias("has_service"),
@@ -100,3 +102,63 @@ def aggregate_basket(df: pl.DataFrame) -> pl.DataFrame:
         aggregations.append(pl.col("target").first().alias("target"))
 
     return df.group_by(ID_COLUMN).agg(aggregations)
+
+
+def preprocess_raw(df: pl.DataFrame) -> pl.DataFrame:
+    """Unpivot, clean, cast. Stateless steps shared between train and inference."""
+    return (
+        df.pipe(unpivot_items)
+        .pipe(remove_empty_items)
+        .pipe(rename_columns)
+        .pipe(cast_types)
+        .pipe(clean_item)
+    )
+
+
+def fit_artifacts(df: pl.DataFrame) -> dict[str, Any]:
+    """Compute filling dicts from training data (the 'fit' step)."""
+    from fraud_detection.training.artifacts import (
+        compute_make_filling,
+        compute_model_filling,
+    )
+    return {
+        "make_filling": compute_make_filling(df),
+        "model_filling": compute_model_filling(df),
+    }
+
+
+def apply_artifacts(df: pl.DataFrame, artifacts: dict[str, Any]) -> pl.DataFrame:
+    """Apply filling dicts to fill missing make/model."""
+    return (
+        df.pipe(apply_filling, column="make", filling=artifacts["make_filling"])
+        .pipe(apply_filling, column="model", filling=artifacts["model_filling"])
+    )
+
+
+def build_features(
+    raw_x: pl.DataFrame,
+    raw_y: pl.DataFrame | None = None,
+    artifacts: dict[str, Any] | None = None,
+) -> tuple[pl.DataFrame, dict[str, Any]]:
+    """End-to-end: raw CSVs -> aggregated basket-level features.
+
+    - artifacts=None  : fit new artifacts from raw_x (training mode).
+    - artifacts given : reuse them (inference mode).
+    - raw_y given     : target column included in output.
+    """
+    df = preprocess_raw(raw_x)
+
+    if artifacts is None:
+        artifacts = fit_artifacts(df)
+    df = apply_artifacts(df, artifacts)
+
+    if raw_y is not None:
+        df = df.join(
+            raw_y.select(["ID", "fraud_flag"])
+            .rename({"fraud_flag": "target"})
+            .with_columns(pl.col("ID").cast(pl.Utf8)),
+            on="ID",
+            how="left",
+        )
+
+    return aggregate_basket(df), artifacts

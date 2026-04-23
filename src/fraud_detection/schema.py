@@ -46,3 +46,20 @@ ITEMS_OUTLIERS = {
     "TOSHIBAPORTABLEHARDDRIVE": "OTHER",
     "UNKNOWN": "OTHER",
 }
+
+# Feature columns produced by aggregate_basket
+FEATURE_COLUMNS = [
+    "n_items",
+    "n_prods",
+    "price",
+    "max_price",
+    "mean_price",
+    "std_price",
+    "max_price_in_fraud_zone",
+    "has_computer",
+    "has_fulfilment",
+    "has_service",
+    "has_apple",
+    "has_macbook",
+    "has_ipad",
+]
