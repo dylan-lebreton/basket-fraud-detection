@@ -65,15 +65,20 @@ spec:
       eventName: fraud-raw-data
       filters:
         data:
-          - path: "Key"
+          - path: "notification.0.s3.object.key"
             type: string
             value:
-              - "fraud-raw-data/Y_train.csv"
+              - "Y_train.csv"
   triggers:
     - template:
         name: launch-training
         argoWorkflow:
           operation: submit
+          parameters:
+            - src:
+                dependencyName: y-train-uploaded
+                dataKey: notification.0.s3.object.key
+              dest: spec.arguments.parameters.0.value
           source:
             resource:
               apiVersion: argoproj.io/v1alpha1
@@ -84,3 +89,7 @@ spec:
               spec:
                 workflowTemplateRef:
                   name: fraud-training
+                arguments:
+                  parameters:
+                    - name: y-train-key
+                      value: Y_train.csv

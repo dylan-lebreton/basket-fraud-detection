@@ -6,8 +6,15 @@ metadata:
 spec:
   entrypoint: train
   serviceAccountName: workflow-executor
+  arguments:
+    parameters:
+      - name: y-train-key
+        value: Y_train.csv
   templates:
     - name: train
+      inputs:
+        parameters:
+          - name: y-train-key
       container:
         image: ghcr.io/dylan-lebreton/fraud-training:latest
         imagePullPolicy: Always
@@ -23,7 +30,7 @@ spec:
           - name: X_TRAIN_KEY
             value: X_train.csv
           - name: Y_TRAIN_KEY
-            value: Y_train.csv
+            value: "{{inputs.parameters.y-train-key}}"
           - name: AWS_ACCESS_KEY_ID
             valueFrom:
               secretKeyRef:
