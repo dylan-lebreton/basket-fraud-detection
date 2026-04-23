@@ -12,3 +12,7 @@ data/
 .vscode/
 .idea/
 .DS_Store
+
+# k8s
+k8s/**/*.commented.yml
+k8s/**/secret.yml
