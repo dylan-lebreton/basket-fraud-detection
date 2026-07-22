@@ -8,6 +8,12 @@ __pycache__/
 data/
 *.csv
 
+# Except notebook datasets and submissions we want tracked
+!notebooks/data/
+!notebooks/data/*.csv
+!notebooks/submission.csv
+!notebooks/submission_semi.csv
+
 # IDE
 .vscode/
 .idea/
